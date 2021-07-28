@@ -1135,7 +1135,7 @@ kable(tibble(model_table_titles, model_table_accuracy),
 
 \newpage
 
-# RESULTS
+# 6. RESULTS
 
 Having done all of the initial data analysis in section 4 and pinpointing which factors may contribute to (or at least warrant a model to test) an accurate stroke prediction system, stepping through six (6) different models yielded the most accurate results with the use of the Random Forest model.  
 
@@ -1158,7 +1158,7 @@ kable(tibble(model_table_titles, model_table_accuracy),
 ```
 
 
-# CONCLUSION
+# 7. CONCLUSION
 
 The purpose of this project was to create a stroke prediction system using a public dataset from Kaggle, and building multiple machine learning models, selecting the one with the highest accuracy as the final model.  From initial GitHub repository creation, to data wrangling, dataset analysis, data visualizations, and model development, the knowledge and techniques learned throughout the entire course series has been used.
 
@@ -1174,7 +1174,7 @@ While the dataset contained many of the health factors that were considered risk
 \vspace{11pt}
 Further improvements and future work include an expanded dataset with more samples, additional performance tuning on all of the models in the future (especially in the event that additional factors get added).  Additional models, such as the ensemble method, could be developed and tuned to test whether further accuracy can be achieved.
 
-# REFERENCES
+# 8. REFERENCES
 
 1. Data Science textbook by Rafael Irizarry, https://rafalab.github.io/dsbook.
 2. Kaggle, Stroke Dataset, https://www.kaggle.com/dhirendommeti/stroke
