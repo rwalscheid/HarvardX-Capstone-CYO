@@ -1,4 +1,4 @@
 # HarvardX-Capstone-CYO
 This repository is for the HarvardX PH125.9X: Data Science Capstone Course.
 
-The final project for this course is a "create your own" machine learning project.
+The submission for the choose-your-own project will be three files: a report in the form of both a PDF document and Rmd file and the R script that performs your machine learning task. You must also provide access to your dataset, either through automatic download in your script or inclusion in a GitHub repository. (Remember, you are strongly discouraged from using well-known datasets, particularly ones that have been used as examples in previous courses or are similar to them. Also remember that you may not submit the same project for both the MovieLens and Choose Your Own project submissions.) We recommend submitting a link to a GitHub repository with these three files and your dataset. Your grade for the project will be based on your report and your script.
