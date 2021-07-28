@@ -744,7 +744,7 @@ model1_accuracy <- confusionMatrix(model1_preds, stroke_test$stroke)$overall["Ac
 model1_accuracy	
 
 # Create a table containing the Model 1 data results.	
-model_table_titles <- "Model 1: Using Logistic Regression (GLM)"	
+model_table_titles <- "Model 1: Logistic Regression (GLM)"	
 model_table_accuracy <- model1_accuracy	
 kable(tibble(model_table_titles, model_table_accuracy),	
       col.names = c("Model", "Accuracy")) %>%	
@@ -956,7 +956,7 @@ kable(tibble(model_table_titles, model_table_accuracy),
 kable(tibble(model_table_titles, model_table_accuracy),	
       col.names = c("Model", "Accuracy")) %>%	
   row_spec(0,background="#104E8B", color="white") %>%	
-  row_spec(6, bold=TRUE) %>% 	
+  row_spec(5, bold=TRUE, color = "red") %>% 	
   column_spec(2, bold=TRUE) %>% 	
   kable_styling(bootstrap_options="bordered", 	
                 full_width=FALSE, 	
