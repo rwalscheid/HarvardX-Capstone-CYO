@@ -1002,3 +1002,6 @@ kable(tibble(model_table_titles, model_table_accuracy),
 # event that additional factors get added).  Additional models, such as the ensemble 
 # method, could be developed and tuned to test whether further accuracy can be 
 # achieved.	
+
+# Clean up Global Environment
+rm(list=ls())
