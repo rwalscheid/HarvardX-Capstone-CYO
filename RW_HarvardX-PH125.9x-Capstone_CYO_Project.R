@@ -1035,9 +1035,9 @@ kable(tibble("FINAL MODEL: Classification and Regression Trees Model (CART)",
 # time. 	
 #
 # After testing 6 different predictive models, using their respective calculated 
-# accuracy scores as the success indicator for each, the Random Forest model yielded
-# the highest score.  Comparing this accuracy score to the 
-# initial Logistic Regression model, there was an improvement.	
+# accuracy scores as the success indicator for each, the Classification and Regression 
+# Trees Model (CART) model yielded the highest score.  Comparing this accuracy score 
+# to the initial Logistic Regression model, there was an improvement.	
 # 	
 # While the dataset contained many of the health factors that were considered risks 
 # by the Centers for Disease Control (CDC) and the National Institute of Neurological
