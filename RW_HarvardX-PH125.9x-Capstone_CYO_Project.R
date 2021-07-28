@@ -7,7 +7,7 @@
 #######################################################################################
 # 1.) PREREQUISITES	###################################################################
 #######################################################################################
-#' 	
+#
 # Download and install the necessary packages for this project.	
 if(!require(tidyverse)) + 	
   install.packages("tidyverse", repos = "http://cran.us.r-project.org")	
@@ -52,7 +52,8 @@ rawdata <- read.csv("https://raw.githubusercontent.com/rwalscheid/HarvardX-Capst
                     row.names = NULL,	
                     stringsAsFactors = FALSE)	
 
-#' The .csv file will automatically be downloaded to your computer's temporary directory and read into a data frame, which contains the necessary records for this project.	
+# The .csv file will automatically be downloaded to your computer's temporary directory
+# and read into a data frame, which contains the necessary records for this project.	
 
 # Summary information of the "rawdata" dataset	
 summary(rawdata)	
