@@ -45,7 +45,7 @@ This project report will step through the process of programmatically obtaining 
 |       6. k-Nearest Neighbor (KNN)
 
 \vspace{11pt}
-The resultant highest accuracy score was found with the Random Forest model at 0.998.
+The resultant highest accuracy score was found with the Classification and Regression Trees (CART) model at 0.997.
 
 [^NINDS]: https://www.stroke.nih.gov/materials/needtoknow.htm
 [^CDC]: https://www.cdc.gov/stroke/facts.htm
@@ -365,20 +365,50 @@ stroke_data_num <- stroke_data %>% mutate(gender=as.numeric(gender),
 str(stroke_data_num)
 ```
 
-## 4.3 `stroke_train` and `stroke_test` Modeling Datasets
+## 4.3 `stroke_final_train` and `stroke_validation` Datasets
 
-Now that the data is ready for model development, the `stroke_data` data frame will be split with a 80%/20% ratio into a training subset called `stroke_train` (4,087 rows) and a test subset called `stroke_test` (1,022 rows), respectively.
+Now that the data is ready for model development, the `stroke_data` data frame will be split with a 80%/20% ratio into a final training subset called `stroke_final_train` (4,087 rows) and a final hold-out validation subset called `stroke_validation` (1,022 rows), respectively. These datasets will only be used to create further training and test subsets for use during model development, and for final training and validation of the final model.  the split percentage chosen is one of the most commonly used in data science, and should suffice for this smaller dataset.
+
+\vspace{11pt}
+**stroke_final_train and stroke_validation Subset Creation Code Snippet:**
+```{r stroke_final_train and stroke_validation subset creation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+# The training dataset, "stroke_final_train", and validation test dataset, 
+# "stroke_validation", will be created from an 80%/20% split of the 
+# "stroke_data" data frame, respectively.
+set.seed(1, sample.kind="Rounding")
+test_index <- createDataPartition(y = stroke_data$stroke, times = 1, p = 0.2, list = FALSE)
+stroke_final_train <- stroke_data[-test_index,]
+stroke_validation <- stroke_data[test_index,]
+rm(test_index) #Clean up temporary variables.
+```
+
+**stroke_final_train and stroke_validation Object Summary:**
+```{r stroke_final_train and stroke_validation summary, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+# Summary information for the "stroke_final_train" dataset.
+summary(stroke_final_train)
+
+# Summary information for the "stroke_validation" dataset.
+summary(stroke_validation)
+```
+
+### 4.3.1 `stroke_train` and `stroke_test` Modeling Datasets
+
+The final hold-out test dataset (`stroke_validation`) will only be used for evaluating and testing the accuracy of the final algorithm, and not during model development.  Since 20% of the entire `stroke_data` dataset has already been allocated to the final hold-out (`stroke_validation`), the `stroke_final_train` dataset itself will be split into an additional 80% training data subset (`stroke_train`) and 20% test subset (`stroke_test`), with 3,269 and 818 rows, respectively.  They will be used to build and test algorithms in the Modeling section of this report.
+
+\vspace{11pt}
+The analysis and charting in the next section (Section 4.4) will use the larger `stroke_data` dataset, while the modeling section (Section 5) will use the smaller `stroke_train`/`stroke_test` datasets for model development.
 
 \vspace{11pt}
 **stroke_train and stroke_test Subset Creation Code Snippet:**
 ```{r stroke_train and stroke_test subset creation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
 # The training dataset, "stroke_train", and validation test dataset, 
-# "stroke_test", will be created from an 80%/20% split of the "stroke_data"
-# data frame, respectively.
+# "stroke_test", will be created from an 80%/20% split of the 
+# "stroke_final_train" data frame, respectively.
 set.seed(1, sample.kind="Rounding")
-test_index <- createDataPartition(y = stroke_data$stroke, times = 1, p = 0.2, list = FALSE)
-stroke_train <- stroke_data[-test_index,]
-stroke_test <- stroke_data[test_index,]
+test_index <- createDataPartition(y = stroke_final_train$stroke, times = 1, p = 0.2, list = FALSE)
+stroke_train <- stroke_final_train[-test_index,]
+stroke_test <- stroke_final_train[test_index,]
+rm(test_index) #Clean up temporary variables.
 ```
 
 **stroke_train and stroke_test Object Summary:**
@@ -389,8 +419,6 @@ summary(stroke_train)
 # Summary information for the "stroke_test" dataset.
 summary(stroke_test)
 ```
-
-The analysis and charting in the next section (Section 4.4) will use the larger `stroke_data` dataset, while the modeling section (Section 5) will use the smaller `stroke_train`/`stroke_test` datasets for model development.
 
 ## 4.4 Dataset Analysis
 
@@ -1137,19 +1165,19 @@ kable(tibble(model_table_titles, model_table_accuracy),
 
 # 6. RESULTS
 
-Having done all of the initial data analysis in section 4 and pinpointing which factors may contribute to (or at least warrant a model to test) an accurate stroke prediction system, stepping through six (6) different models yielded the most accurate results with the use of the Random Forest model.  
+Having done all of the initial data analysis in section 4 and pinpointing which factors may contribute to (or at least warrant a model to test) an accurate stroke prediction system, stepping through six (6) different models yielded the most accurate results with the use of the Classification and Regression Trees Model (CART) model.  
 
 \vspace{11pt}
 While testing the various performance tuning options of each model a few models ended up having extended compute-intensive time frames (up to 2 hours on an 8-core hyperthreaded processor with 64GB RAM).  The final tests with the parameters used in this report only took around 30 minutes to complete from start to finish.
 
 \vspace{11pt}
 The final accuracy results table below shows the summary list of all prediction models tested for a stroke prediction system using the stroke_train and stroke_test datasets.  
-```{r Final RMSE table, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
-# Create Final RMSE Results Table for all models
+```{r Final Accuracy table, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create Final Accuracy Results Table for all models
 kable(tibble(model_table_titles, model_table_accuracy),
       col.names = c("Model", "Accuracy")) %>%
   row_spec(0,background="#104E8B", color="white") %>%
-  row_spec(5, bold=TRUE, color = "red") %>% 
+  row_spec(4, bold=TRUE, color = "red") %>% 
   column_spec(2, bold=TRUE) %>% 
   kable_styling(bootstrap_options="bordered", 
                 full_width=FALSE, 
@@ -1157,16 +1185,50 @@ kable(tibble(model_table_titles, model_table_accuracy),
                 latex_options="HOLD_position")
 ```
 
+The final hold-out testing of this model using the initial `stroke_final_train` and `stroke_validation` datasets yielded the following final accuracy score:
+
+\vspace{11pt}
+```{r Final model calculation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+set.seed(1, sample.kind = "Rounding")
+# Train the selected final model.
+final_model_fit <- train(stroke ~ ., data = stroke_final_train,
+                   method = "rpart",
+                   preProcess=c("center", "scale"),
+                   tuneGrid = data.frame(cp = seq(0.0, 0.1, len = 25)))
+final_model_fit
+
+# Predict the outcome from the stroke_test dataset
+final_model_preds <- predict(final_model_fit, stroke_validation)
+
+# Calculate the accuracy of the model against the stroke_test dataset.
+final_model_accuracy <- confusionMatrix(final_model_preds, stroke_validation$stroke)$overall["Accuracy"]
+final_model_accuracy
+```
+```{r Final Model Accuracy table, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create Final Model Accuracy Results Table
+kable(tibble("FINAL MODEL: Classification and Regression Trees Model (CART)", 
+             final_model_accuracy),
+      col.names = c("Model", "Accuracy")) %>%
+  row_spec(0,background="#104E8B", color="white") %>% 
+  column_spec(1, bold=TRUE) %>% 
+  column_spec(2, color="red", bold=TRUE) %>% 
+  kable_styling(bootstrap_options="bordered", 
+                full_width=FALSE, 
+                position="center",
+                latex_options="HOLD_position")
+```
+
+\newpage
 
 # 7. CONCLUSION
 
 The purpose of this project was to create a stroke prediction system using a public dataset from Kaggle, and building multiple machine learning models, selecting the one with the highest accuracy as the final model.  From initial GitHub repository creation, to data wrangling, dataset analysis, data visualizations, and model development, the knowledge and techniques learned throughout the entire course series has been used.
 
 \vspace{11pt}
-Both the logistic regression, Naive Bayes, and linear discriminant models all performed their calculations very quickly, and all used the same tuning parameters with results that were all still very high (`r model1_accuracy`, `r model2_accuracy`, and `r model3_accuracy`, respectively).  The Random Forest and k-Nearest Neighbors tuning parameters were more difficult to test as the calculation times would get extended, and the CPU resources would be locked to the process until completed each time. 
+Both the logistic regression, Naive Bayes, and linear discriminant models all performed their calculations very quickly, and all used the same tuning parameters with results that were all still very high (`r model1_accuracy`, `r model2_accuracy`, and `r model3_accuracy`, respectively).  The Random Forest and k-Nearest Neighbors tuning parameters were more difficult to test as the calculation times would get extended, and the CPU resources would be locked to the process until completed each time.
 
 \vspace{11pt}
-After testing 6 different predictive models, using their respective calculated accuracy scores as the success indicator for each, the Random Forest model yielded the highest score of `r model5_accuracy`.  Comparing this accuracy score to the initial Logistic Regression model (`r model1_accuracy`), there was an improvement of approximately `r round(((model5_accuracy - model1_accuracy)/model1_accuracy)*100, 3)`%.
+After testing 6 different predictive models, using their respective calculated accuracy scores as the success indicator for each, the Classification and Regression Trees Model (CART) model yielded the highest score of `r model4_accuracy`.  Comparing this accuracy score to the initial Logistic Regression model (`r model1_accuracy`), there was an improvement of approximately `r round(((model4_accuracy - model1_accuracy)/model1_accuracy)*100, 3)`%.
 
 \vspace{11pt}
 While the dataset contained many of the health factors that were considered risks by the Centers for Disease Control (CDC) and the National Institute of Neurological Disorders and Stroke (NINDS), as indicated in the Introduction, limitations to the model included several other missing predictors that could be added to future tests, such as Race, geographic location, alcohol drinking habits, drug use, cholesterol level, etc.  Being able to inform both the patient and their doctor of their risk of stroke could lead to proactive treatment, better life choices, and a prolonged life span.  The data in this particular dataset showed `age`, `heart_disease`, `avg_glucose_level`, and `hypertension` are the most relevant predictors to `stroke`.

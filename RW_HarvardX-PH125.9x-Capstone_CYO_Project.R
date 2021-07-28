@@ -160,7 +160,7 @@ bmi_na_pct_tot
 # would have on the predictability.	
 bmi_na_pct_stroke <- 	
   (length(which(is.na(stroke_data$bmi) & stroke_data$stroke == "stroke"))/	
-     NROW(stroke_data$bmi))*100     	
+     NROW(stroke_data))*100     	
 bmi_na_pct_stroke #Stroke-Positive Percentage	
 	
 bmi_na_pct_nostroke <- 	
@@ -195,7 +195,7 @@ stroke_data <- stroke_data %>%
 # 	
 # Create the fully-numeric "stroke_data_num" dataset, copying the original
 # "stroke_data" dataset and convert all factor variables.
-stroke_data_num <- stroke_data %>% mutate(gender=as.numeric(gender),	
+stroke_data_num <- stroke_data %>% mutate(gender=as.numeric(gender),
                                           hypertension=as.numeric(hypertension),	
                                           heart_disease=as.numeric(heart_disease),	
                                           ever_married=as.numeric(ever_married),	
@@ -208,19 +208,44 @@ stroke_data_num <- stroke_data %>% mutate(gender=as.numeric(gender),
 # Structure of the "stroke_data_num" dataset	
 str(stroke_data_num)	
 
-# The training dataset, "stroke_train", and validation test dataset, 	
-# "stroke_test", will be created from an 80%/20% split of the "stroke_data"	
+# The training dataset, "stroke_final_train", and validation test dataset, 	
+# "stroke_validation", will be created from an 80%/20% split of the "stroke_data"	
 # data frame, respectively.	
 set.seed(1, sample.kind="Rounding")	
 test_index <- createDataPartition(y = stroke_data$stroke, times = 1, p = 0.2, list = FALSE)	
-stroke_train <- stroke_data[-test_index,]	
-stroke_test <- stroke_data[test_index,]	
+stroke_final_train <- stroke_data[-test_index,]	
+stroke_validation <- stroke_data[test_index,]	
+rm(test_index) #Clean up temporary variables.
 
-# Summary information for the "stroke_train" dataset.	
-summary(stroke_train)	
+# Summary information for the "stroke_final_train" dataset.	
+summary(stroke_final_train)	
 	
-# Summary information for the "stroke_test" dataset.	
-summary(stroke_test)	
+# Summary information for the "stroke_validation" dataset.	
+summary(stroke_validation)	
+
+# The final hold-out test dataset (`stroke_validation`) will only be used 
+# for evaluating and testing the accuracy of the final algorithm, and not during 
+# model development.  Since 20% of the entire `stroke_data` dataset has already
+# been allocated to the final hold-out (`stroke_validation`), the 
+# `stroke_final_train` dataset itself will be split into an additional 80%
+# training data subset (`stroke_train`) and 20% test subset
+# (`stroke_test`), with 3,269 and 818 rows, respectively.  They will be 
+# used to build and test algorithms in the Modeling section of this report.
+
+# The training dataset, "stroke_train", and validation test dataset, 
+# "stroke_test", will be created from an 80%/20% split of the 
+# "stroke_final_train" data frame, respectively.
+set.seed(1, sample.kind="Rounding")
+test_index <- createDataPartition(y = stroke_final_train$stroke, times = 1, p = 0.2, list = FALSE)
+stroke_train <- stroke_final_train[-test_index,]
+stroke_test <- stroke_final_train[test_index,]
+
+# Summary information for the "stroke_train" dataset.
+summary(stroke_train)
+
+# Summary information for the "stroke_test" dataset.
+summary(stroke_test)
+
 
 #######################################################################################
 # 2.) DATASET ANALYSIS ################################################################
@@ -231,7 +256,7 @@ summary(stroke_test)
 #' has been done following their creation in previous sections.  This section will 
 #' focus on studying the data itself and any correlations that can aid in model selection.	
 
-# Get a quick glimpse of the data in stroke_data.	
+# Get a quick glimpse of the data in stroke_data	
 glimpse(stroke_data, width=80)	
 
 # In **Figure 4.4.1** below, a grid of eight bar graphs shows a graphical breakdown of
@@ -875,10 +900,9 @@ set.seed(1, sample.kind = "Rounding")
 # tuning parameters.	
 model5_fit <- train(stroke ~ ., data = stroke_train,	
                    method = "Rborist",	
-                   preProcess=c("center", "scale"),	
                    tuneGrid = expand.grid(predFixed = seq(1,4), minNode = 2))	
 model5_fit	
-	
+
 # Predict the outcome from the stroke_test dataset	
 model5_preds <- predict(model5_fit, stroke_test)	
 	
@@ -913,7 +937,7 @@ set.seed(1, sample.kind = "Rounding")
 model6_fit <- train(stroke ~ ., data = stroke_train,	
                    method = "knn",	
                    preProcess=c("center", "scale"),	
-                   tuneGrid = data.frame(k = seq(1,100,5)))	
+                   tuneGrid = data.frame(k = seq(1,50,5)))	
 model6_fit	
 	
 # Predict the outcome from the stroke_test dataset	
@@ -942,11 +966,11 @@ kable(tibble(model_table_titles, model_table_accuracy),
 # Having done all of the initial data analysis in section 4 and pinpointing which 
 # factors may contribute to (or at least warrant a model to test) an accurate stroke 
 # prediction system, stepping through six (6) different models yielded the most 
-# accurate results with the use of the Random Forest model. While testing the various 
-# performance tuning options of each model a few models ended up having extended 
-# compute-intensive time frames (up to 2 hours on an 8-core hyperthreaded processor 
-# with 64GB RAM).  The final tests with the parameters used in this report only took
-# around 30 minutes to complete from start to finish.	
+# accurate results with the use of the Classification and Regression Trees (CART) model. 
+# While testing the various performance tuning options of each model a few models 
+# ended up having extended compute-intensive time frames (up to 2 hours on an 8-core 
+# hyperthreaded processor with 64GB RAM).  The final tests with the parameters used 
+# in this report only took around 30 minutes to complete from start to finish.	
 
 # The final accuracy results table below shows the summary list of all prediction 
 # models tested for a stroke prediction system using the stroke_train and stroke_test 
@@ -956,12 +980,41 @@ kable(tibble(model_table_titles, model_table_accuracy),
 kable(tibble(model_table_titles, model_table_accuracy),	
       col.names = c("Model", "Accuracy")) %>%	
   row_spec(0,background="#104E8B", color="white") %>%	
-  row_spec(5, bold=TRUE, color = "red") %>% 	
+  row_spec(4, bold=TRUE, color = "red") %>% 	
   column_spec(2, bold=TRUE) %>% 	
   kable_styling(bootstrap_options="bordered", 	
                 full_width=FALSE, 	
                 position="center",	
                 latex_options="HOLD_position")	
+
+# The final hold-out testing of this model using the initial `stroke_final_train` 
+# and `stroke_validation` datasets yielded the following final accuracy score:
+set.seed(1, sample.kind = "Rounding")
+# Train the selected final model.
+final_model_fit <- train(stroke ~ ., data = stroke_final_train,
+                         method = "rpart",
+                         preProcess=c("center", "scale"),
+                         tuneGrid = data.frame(cp = seq(0.0, 0.1, len = 25)))
+final_model_fit
+
+# Predict the outcome from the stroke_test dataset
+final_model_preds <- predict(final_model_fit, stroke_validation)
+
+# Calculate the accuracy of the model against the stroke_test dataset.
+final_model_accuracy <- confusionMatrix(final_model_preds, stroke_validation$stroke)$overall["Accuracy"]
+final_model_accuracy
+
+# Create Final Model Accuracy Results Table
+kable(tibble("FINAL MODEL: Classification and Regression Trees Model (CART)", 
+             final_model_accuracy),
+      col.names = c("Model", "Accuracy")) %>%
+  row_spec(0,background="#104E8B", color="white") %>% 
+  column_spec(1, bold=TRUE) %>% 
+  column_spec(2, color="red", bold=TRUE) %>% 
+  kable_styling(bootstrap_options="bordered", 
+                full_width=FALSE, 
+                position="center",
+                latex_options="HOLD_position")
 
 #######################################################################################
 # 5.) CONCLUSION ######################################################################
