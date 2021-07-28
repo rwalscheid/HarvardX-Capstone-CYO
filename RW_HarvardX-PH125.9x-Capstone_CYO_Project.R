@@ -3,7 +3,7 @@
 # Author: Robert Walscheid	
 # Date: 07/28/2021
 #######################################################################################
-
+#
 #######################################################################################
 # 1.) PREREQUISITES	###################################################################
 #######################################################################################
@@ -969,23 +969,22 @@ kable(tibble(model_table_titles, model_table_accuracy),
 #
 # The purpose of this project was to create a stroke prediction system, using a public
 # dataset from Kaggle, and building multiple machine learning models, selecting the one 
-# with the highest accuracy.  From initial GitHub repository creation, to data 
-# wrangling, dataset analysis, data visualizations, and model development, the 
-# knowledge and techniques learned throughout the entire course series has been used.	
+# with the highest accuracy as the final model.  From initial GitHub repository 
+# creation, to data wrangling, dataset analysis, data visualizations, and model 
+# development, the knowledge and techniques learned throughout the entire course series
+# has been used.	
 # 	
 # Both the logistic regression, Naive Bayes, and linear discriminant models all 
 # performed their calculations very quickly, and all used the same tuning parameters
-# with results that were all still very high (`r model1_accuracy`, `r model2_accuracy`, 
-# and `r model3_accuracy`, respectively).  The Random Forest and k-Nearest Neighbors 
+# with results that were all still very high.  The Random Forest and k-Nearest Neighbors 
 # tuning parameters were more difficult to test as the calculation times would get 
 # extended, and the CPU resources would be locked to the process until completed each 
 # time. 	
 #
 # After testing 6 different predictive models, using their respective calculated 
 # accuracy scores as the success indicator for each, the Random Forest model yielded
-# the highest score of `r model6_accuracy`.  Comparing this accuracy score to the 
-# initial Logistic Regression model (`r model1_accuracy`), there was an improvement
-# of approximately `r round((model6_accuracy - model1_accuracy)*100, 3)`%.	
+# the highest score.  Comparing this accuracy score to the 
+# initial Logistic Regression model, there was an improvement.	
 # 	
 # While the dataset contained many of the health factors that were considered risks 
 # by the Centers for Disease Control (CDC) and the National Institute of Neurological
