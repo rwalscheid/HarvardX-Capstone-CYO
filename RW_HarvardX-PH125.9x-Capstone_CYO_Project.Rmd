@@ -184,7 +184,7 @@ Out of the 5,110 rows in the dataset, there is a single non-female/male entry in
 rawdata %>% filter(gender %in% "Other") %>% group_by(gender) %>% summarize(n=n())
 ```
 
-The count of `Other` entries above shows only one person listed.  This single entry will be removed during the training/testing data split for simplicity since 1 entry out of 5,110 in this particular dataset is not considered statistically significant.  This will leave only two levels for the `gender` factor when converted: `Male` and `Female`.
+The count of `Other` entries above shows only one person listed.  This single entry will be removed when the cleansed dataset is created in the next section for simplicity since 1 entry out of 5,110 in this particular dataset is not considered statistically significant.  This will leave only two levels for the `gender` factor when converted: `Male` and `Female`.
 
 \vspace{11pt}
 To make plotting charts and performing summary analysis throughout this report easier to read and identify, the variables below will be converted to factors, then relabeled and re-ordered (if necessary) as follows:
@@ -225,11 +225,11 @@ kable(tibble(factor_variables, factor_labels_and_levels),
 ```
 
 \vspace{11pt}
-When examining the structure of the `rawdata` data frame in Section 3, it was noted that the `bmi` vector is of class `character`.  Since the body mass index (BMI) is numeric, this variable will need to be converted.  
+When examining the structure of the `rawdata` data frame in Section 3, it was noted that the `bmi` vector is of class `character`.  Since the body mass index (`bmi`) is numeric, this variable will need to be converted.  
 
 ## 4.2 `stroke_data` Dataset
 
-With the variable categories laid out and the factor level order, labels, and levels determined, a new dataset named `stroke_data` will be created with all of the changes listed in Section 4.2 above.  This new data frame will contain 5,109 rows with 12 columns.
+With the variable categories laid out and the factor level order, labels, and levels determined, a new clean dataset named `stroke_data` will be created with all of the changes listed in Section 4.1 above.  This new data frame will contain 5,109 rows with 12 columns.
 
 ```{r stroke_data dataset creation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
 # Remove the single "Other" gender row to not skew results, convert the BMI to numeric,  
@@ -318,7 +318,8 @@ bmi_na_pct_nostroke #Stroke-Negative Percentage
 
 As shown above, the `NA` entries in the `bmi` variable have a `r round(bmi_na_pct_stroke, 4)`% and `r round(bmi_na_pct_nostroke, 4)`% impact to the predictability of a `stroke` vs. `no_stroke` result, respectively.  If this difference had been closer to a 50%/50% split, we could possibly omit the `NA` `bmi` entries since their presence would not impact the overall correlation of `bmi` value to a `stroke`/`no_stroke` outcome. The `NA`'s instead will be replaced with the mean `bmi` values for `stroke`/`no_stroke` results, accordingly.
 
-\vspace{11pt}
+\newpage
+
  **bmi "NA" Replacement:**
 ```{r bmi NA mean calculations, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
 # Calculate the mean bmi in the dataset for all non-"NA" bmi entries that were also 
@@ -866,7 +867,7 @@ kable(tibble(cor_table_titles, cor_table_coeffs),
                 latex_options="HOLD_position")
 ```
 
-The table above shows the correlation coefficient amounts for each applicable variable.  The `id` column was removed during dataset creation since there's no direct correlation with that field, and running the `cor()` command against the `stroke` variable would always be 1, so it was not added to the table.
+The table above shows the correlation coefficient amounts for each applicable variable.  The `id` column was removed during the `stroke_data_num` dataset creation since there is no direct correlation with that field, and running the `cor()` command against the `stroke` variable would always be 1, so it was not added to the table.
 
 \vspace{11pt}
 The data shows that the `age`, `heart_disease`, `avg_glucose_level`, and `hypertension` are the most relevant predictors to `stroke`.
@@ -1010,12 +1011,9 @@ kable(tibble(model_table_titles, model_table_accuracy),
 ## Model 4: Classification and Regression Trees Model (CART)
 
 Classification (decision) trees build up a set of decision rules that "branch out" to form a tree structure, similar to a flow chart.  This branching helps predict an outcome based on the input data.
-
-\vspace{11pt}
-The Gini Index:
 $$\text{Gini}(j)=\sum_{k=1}^K\hat{p}_{j,k}(1-\hat{p}_{j,k})$$
 
-or Entropy (below) can be used as a metric for classifiers in the classification tree method.
+The Gini Index (above) or Entropy (below) can be used as a metric for classifiers in the classification tree method.
 $$entropy(j)=-\sum_{k=1}^K\hat{p}_{j,k}\log(\hat{p}_{j,k})\text{, with 0 x log(0) defined as 0}$$
 
 ```{r model 4 calculation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
@@ -1151,7 +1149,7 @@ The final accuracy results table below shows the summary list of all prediction 
 kable(tibble(model_table_titles, model_table_accuracy),
       col.names = c("Model", "Accuracy")) %>%
   row_spec(0,background="#104E8B", color="white") %>%
-  row_spec(6, bold=TRUE) %>% 
+  row_spec(5, bold=TRUE, color = "red") %>% 
   column_spec(2, bold=TRUE) %>% 
   kable_styling(bootstrap_options="bordered", 
                 full_width=FALSE, 
@@ -1162,13 +1160,13 @@ kable(tibble(model_table_titles, model_table_accuracy),
 
 # CONCLUSION
 
-The purpose of this project was to create a stroke prediction system, using a public dataset from Kaggle, and building multiple machine learning models, selecting the one with the highest accuracy.  From initial GitHub repository creation, to data wrangling, dataset analysis, data visualizations, and model development, the knowledge and techniques learned throughout the entire course series has been used.
+The purpose of this project was to create a stroke prediction system using a public dataset from Kaggle, and building multiple machine learning models, selecting the one with the highest accuracy as the final model.  From initial GitHub repository creation, to data wrangling, dataset analysis, data visualizations, and model development, the knowledge and techniques learned throughout the entire course series has been used.
 
 \vspace{11pt}
 Both the logistic regression, Naive Bayes, and linear discriminant models all performed their calculations very quickly, and all used the same tuning parameters with results that were all still very high (`r model1_accuracy`, `r model2_accuracy`, and `r model3_accuracy`, respectively).  The Random Forest and k-Nearest Neighbors tuning parameters were more difficult to test as the calculation times would get extended, and the CPU resources would be locked to the process until completed each time. 
 
 \vspace{11pt}
-After testing 6 different predictive models, using their respective calculated accuracy scores as the success indicator for each, the Random Forest model yielded the highest score of `r model6_accuracy`.  Comparing this accuracy score to the initial Logistic Regression model (`r model1_accuracy`), there was an improvement of approximately `r round((model6_accuracy - model1_accuracy)*100, 3)`%.
+After testing 6 different predictive models, using their respective calculated accuracy scores as the success indicator for each, the Random Forest model yielded the highest score of `r model5_accuracy`.  Comparing this accuracy score to the initial Logistic Regression model (`r model1_accuracy`), there was an improvement of approximately `r round(((model5_accuracy - model1_accuracy)/model1_accuracy)*100, 3)`%.
 
 \vspace{11pt}
 While the dataset contained many of the health factors that were considered risks by the Centers for Disease Control (CDC) and the National Institute of Neurological Disorders and Stroke (NINDS), as indicated in the Introduction, limitations to the model included several other missing predictors that could be added to future tests, such as Race, geographic location, alcohol drinking habits, drug use, cholesterol level, etc.  Being able to inform both the patient and their doctor of their risk of stroke could lead to proactive treatment, better life choices, and a prolonged life span.  The data in this particular dataset showed `age`, `heart_disease`, `avg_glucose_level`, and `hypertension` are the most relevant predictors to `stroke`.
