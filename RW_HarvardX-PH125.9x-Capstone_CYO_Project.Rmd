@@ -1,0 +1,1185 @@
+---
+title: |
+  | \vspace{6cm} **HarvardX PH125.9x Data Science: Capstone**
+  | **Stroke Prediction System**
+author: "*Robert Walscheid*"
+date: "*`r format(Sys.time(), '%B %d, %Y')`*"
+output: 
+  pdf_document:
+    citation_package: natbib
+    fig_caption: true
+    latex_engine: xelatex
+    number_sections: FALSE
+    toc: no
+    toc_depth: 5
+wrap: auto
+geometry: "left=0.75in,right=0.75in,top=0.75in,bottom=0.5in,includefoot"
+mainfont: "Georgia" 
+fontsize: 11pt
+indent: false
+---
+
+\newpage
+\tableofcontents
+\newpage
+
+# 1. INTRODUCTION
+
+In a healthy individual, our veins and arteries carry blood and nutrients throughout our body, including to our brain.  A stroke is a medical emergency that occurs when this blood supply to the brain is interrupted or stops moving through the vascular system to the brain.  According to the National Institute of Neurological Disorders and Stroke, the United States sees more than 795,000 stroke cases annually, which is the fifth leading cause of death in the country.[^NINDS]  The CDC stated that in 2018, 1 in every 6 deaths from cardiovascular disease was due to stroke.  Furthermore, every 40 seconds, someone in the United States has a stroke, and every 4 minutes, someone dies of stroke.[^CDC]
+
+\vspace{11pt}
+The two main types of stroke are **ischemic**, where blood clots or fatty deposits called plaque block the blood vessels, and **hemorrhagic**, where blood vessels bust in the brain causing blood to pool up and damage surrounding tissue.  Many factors increase the risk of having one of these two types of stroke, including being overweight (or obese), being physically inactive, heavy (or binge) drinking, use of illegal drugs, high blood pressure, smoking, high cholesterol, diabetes, obstructive sleep apnea, cardiovascular disease, family history of stroke or heart attack, and COVID-19 infection.[^MayoClinic]
+
+\vspace{11pt}
+This project focuses on creating a stroke prediction system using a synthetic dataset[^Kaggle] uploaded by user Dhiren Dommeti to the well-known public code & data repository website, Kaggle.  This is to fulfill the the "IDV Learners" portion of the **HarvardX: PH125.9x Data Science: Capstone** course.
+
+\vspace{11pt}
+This project report will step through the process of programmatically obtaining and analyzing the stroke data file, creating and analyzing the necessary datasets, building and testing multiple machine learning algorithms, and will conclude with commenting on the final model and its results.  Using supervised machine learning methodologies, coded in the R programming language[^RProject], the following algorithms will be used to predict the likelihood of a stroke based on variables in the dataset:
+
+\vspace{11pt}
+|         1. Generalized Linear Model (GLM) 
+|       2. Naive Bayes  
+|       3. Linear Discriminant Analysis (LDA)
+|       4. Classification and Regression Trees (CART)
+|       5. Random Forest  
+|       6. k-Nearest Neighbor (KNN)
+
+\vspace{11pt}
+The resultant highest accuracy score was found with the Random Forest model at 0.998.
+
+[^NINDS]: https://www.stroke.nih.gov/materials/needtoknow.htm
+[^CDC]: https://www.cdc.gov/stroke/facts.htm
+[^MayoClinic]: https://www.mayoclinic.org/diseases-conditions/stroke/symptoms-causes/syc-20350113
+[^Kaggle]: https://www.kaggle.com/dhirendommeti/stroke
+[^RProject]: https://www.r-project.org/
+
+\newpage
+
+# 2. PREREQUISITES
+This project and its code has minimum requirements in order to duplicate the environment necessary to successfully run in R Studio.  It will be assumed that all required R packages and applications are current as of the date of this report (found on the cover page), and that the computer has Internet access.
+
+\vspace{11pt}
+\underline{Current RStudio Version Output:}
+```{r Testing sessionInfo Output, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+version
+```
+
+## 2.1 Required Packages
+In order for the R code to run properly, the below packages are required.  In the event that they are not available at runtime, the R code will download, install, and load them first.
+  
+\underline{Package Loading Code Snippet:}
+```{r Printed Package Installation and Loading, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+# Download and install the necessary packages for this project.
+if(!require(tidyverse)) + 
+  install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if(!require(caret)) +
+  install.packages("caret", repos = "http://cran.us.r-project.org")
+if(!require(data.table)) +
+  install.packages("data.table", repos = "http://cran.us.r-project.org")
+if(!require(scales)) +
+  install.packages("scales", repos = "http://cran.us.r-project.org")
+if(!require(corrplot)) +
+  install.packages("corrplot", repos = "http://cran.us.r-project.org")
+if(!require(dplyr)) +
+  install.packages("dplyr", repos = "http://cran.us.r-project.org")
+if(!require(grid)) +
+  install.packages("gridExtra", repos = "http://cran.us.r-project.org")
+if(!require(grid)) +
+  install.packages("gridExtra", repos = "http://cran.us.r-project.org")
+if(!require(kableExtra)) +
+  install.packages("kableExtra", repos = "http://cran.us.r-project.org")
+if(!require(stats)) 
+  install.packages("stats", repos = "http://cran.us.r-project.org")
+
+# Load the necessary libraries for this project.
+library(tidyverse)
+library(caret)
+library(data.table)
+library(scales)
+library(corrplot)
+library(dplyr)
+library(grid)
+library(gridExtra)
+library(kableExtra)
+library(stats)
+```
+
+## 2.2 Required Data
+The stroke dataset used for this project is originally from the Kaggle website.  Since Kaggle requires each user to log into their site before being able to download any data files, the 314KB **Stroke-Data.csv** file was previously downloaded and pushed to the GitHub repository this RStudio project was created in.
+
+\underline{Dataset Download Code Snippet:}
+```{r Kaggle Stroke Dataset GitHub Download, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+# Download the Stroke-Data.csv file from GitHub, create the data frame "rawdata", 
+# and fill it with the 12 columns of data that were in the  file, labeling them
+# id, gender, age, hypertension, heart_disease, ever_married, work_type,
+# Residence_type, bmi, avg_glucose_level, smoking_status, and stroke, 
+# respectively.
+rawdata <- read.csv("https://raw.githubusercontent.com/rwalscheid/HarvardX-Capstone-CYO/main/Stroke-Data.csv",
+                    quote = "",
+                    row.names = NULL,
+                    stringsAsFactors = FALSE)
+```
+
+The .csv file will automatically be downloaded to your computer's temporary directory and read into a data frame, which contains the necessary records for this project.
+
+\newpage
+
+# 3. STROKE-DATA.CSV DATA FILE
+
+With the required R packages loaded and the `Stroke-Data.csv` data file downloaded and ingested into a data frame, reviewing this file within an appropriate editor (e.g. Microsoft Excel, OpenOffice Calc, Google Drive, etc.) would be beneficial in understanding its full contents for this project.  Only a few of the predictors found in this dataset are directly-related health-based factors that impact a person's risk of stroke, while others are surrounding environmental factors.
+
+\vspace{11pt}
+|         1. **id** (class=integer): A unique identification number for each person.  
+|       2. **gender** (class=character): The person's gender, as male or female.  
+|       3. **age** (class=numeric): The person's age in years.  
+|       4. **hypertension** (class=integer): Yes/No (as 1/0) entry for whether the person has hypertension.  
+|       5. **heart_disease** (class=integer): Yes/No (as 1/0) entry for whether the person has heart disease.  
+|       6. **ever_married** (class=character): Yes/No entry for whether the person has ever been married.  
+|       7. **work_type** (class=character): Category of work the person is in (or whether they are a child).  
+|       8. **Residence_type** (class=character): Rural/Urban entry for where the person lives. 
+|       9. **bmi** (class=character): The person's body mass index (BMI).  
+|       10. **avg_glucose_level** (class=numeric): The person's average blood sugar level.  
+|       11. **smoking_status** (class=character): Category for whether the person is/was a smoker.  
+|       12. **stroke** (class=integer): Yes/No (as 1/0) entry for whether the person has had a stroke.  
+
+A basic analysis of this dataset once created is shown below.
+
+\vspace{11pt}
+\underline{\textit{rawdata} Object Summary:}
+```{r rawdata summary, echo=TRUE, message=TRUE, warning=FALSE, eval=TRUE}
+# Summary information of the "rawdata" dataset
+summary(rawdata)
+```
+\underline{\textit{rawdata} Data Structure:}
+```{r rawdata structure, echo=TRUE, message=TRUE, warning=FALSE, eval=TRUE}
+# Structure of the "rawdata" dataset
+str(rawdata)
+```
+
+\newpage
+
+# 4. DATA PREPARATION & ANALYSIS
+## 4.1 `rawdata` Dataset
+With the `rawdata` dataset now created, the previous basic analysis showed the data frame consists of 5,110 rows and 12 columns (`id`, `gender`, `age`, `hypertension`, `heart_disease`, `ever_married`, `work_type`, `Residence_type`, `bmi`, `avg_glucose_level`, `smoking_status`, and `stroke`).
+
+\vspace{11pt}
+Each variable with multiple categories will need to be reviewed, as they will be changed to factors with levels (the variable's categories) for easier plotting and analysis throughout this project report.  This will also help determine upfront as to whether there are outliers that may be discarded to minimize confounding.
+
+```{r view all factor levels, echo=TRUE, message=TRUE, warning=FALSE, eval=TRUE}
+# View the multiple categories for each applicable variable to determine factor levels 
+# to convert to.
+unique(rawdata$gender)
+unique(rawdata$ever_married)
+unique(rawdata$work_type)
+unique(rawdata$Residence_type)
+unique(rawdata$smoking_status)
+```
+
+\underline{\textbf{Variable Conversion to Factors with Levels}}
+
+Out of the 5,110 rows in the dataset, there is a single non-female/male entry in the gender category labeled `Other`.  
+
+```{r view other gender count, echo=TRUE, message=TRUE, warning=FALSE, eval=TRUE}
+# View the gender count for the category "Other".
+rawdata %>% filter(gender %in% "Other") %>% group_by(gender) %>% summarize(n=n())
+```
+
+The count of `Other` entries above shows only one person listed.  This single entry will be removed during the training/testing data split for simplicity since 1 entry out of 5,110 in this particular dataset is not considered statistically significant.  This will leave only two levels for the `gender` factor when converted: `Male` and `Female`.
+
+\vspace{11pt}
+To make plotting charts and performing summary analysis throughout this report easier to read and identify, the variables below will be converted to factors, then relabeled and re-ordered (if necessary) as follows:
+
+```{r variable factor conversion table, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create Factor variable table with ordered labels and levels
+factor_variables <- c("gender","",
+                      "hypertension","",
+                      "heart_disease","",
+                      "ever_married","",
+                      "work_type","","","","",
+                      "Residence_type","",
+                      "smoking_status","","","",
+                      "stroke","")
+factor_labels_and_levels <- c("Male","Female",
+                              "wo_hypertension = 0","w_hypertension = 1",
+                              "wo_heart_disease = 0", "w_heart_disease = 1",
+                              "Yes", "No",
+                              "Underage_child = children", 
+                              "Never_worked",
+                              "Self-employed",
+                              "Private_company = Private",
+                              "Govt_job",
+                              "Rural", "Urban",
+                              "never smoked",
+                              "formerly smoked",
+                              "smokes",
+                              "Unknown",
+                              "no_stroke = 0", "stroke = 1")
+kable(tibble(factor_variables, factor_labels_and_levels),
+      col.names = c("Variables", "Factor Levels")) %>%
+  row_spec(0,background="#104E8B", color = "white") %>% 
+  column_spec(1, bold=TRUE) %>% 
+  kable_styling(bootstrap_options="bordered", 
+                full_width=FALSE, 
+                position = "center",
+                latex_options="HOLD_position")
+```
+
+\vspace{11pt}
+When examining the structure of the `rawdata` data frame in Section 3, it was noted that the `bmi` vector is of class `character`.  Since the body mass index (BMI) is numeric, this variable will need to be converted.  
+
+## 4.2 `stroke_data` Dataset
+
+With the variable categories laid out and the factor level order, labels, and levels determined, a new dataset named `stroke_data` will be created with all of the changes listed in Section 4.2 above.  This new data frame will contain 5,109 rows with 12 columns.
+
+```{r stroke_data dataset creation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+# Remove the single "Other" gender row to not skew results, convert the BMI to numeric,  
+# and convert "gender", "hypertension", "heart_disease", "ever_married", "work_type", 
+# "Residence_type", "smoking_status", and "stroke" all to factors with their respective 
+# levels.
+stroke_data <- rawdata %>% filter(gender!="Other") %>% 
+  mutate(gender = factor(gender, levels = c("Male", "Female")),
+         hypertension = factor(hypertension, 
+                               labels = c("wo_hypertension", "w_hypertension"), 
+                               levels = c("0","1")),
+         heart_disease = factor(heart_disease, 
+                                labels = c("wo_heart_disease", "w_heart_disease"), 
+                                levels = c("0","1")),
+         ever_married = factor(ever_married, 
+                               labels = c("never_married", "is_or_was_married"), 
+                               levels = c("No","Yes")),
+         work_type = factor(work_type, 
+                            labels = c("Underage_child", 
+                                       "Never_worked", 
+                                       "Self-employed", 
+                                       "Private_company", 
+                                       "Govt_job"),
+                            levels = c("children",
+                                       "Never_worked", 
+                                       "Self-employed", 
+                                       "Private", 
+                                       "Govt_job")),
+         Residence_type = factor(Residence_type, 
+                                 levels = c("Rural", "Urban")),
+         bmi = as.numeric(bmi),
+         smoking_status = factor(smoking_status, 
+                                 levels = c("never smoked", 
+                                            "formerly smoked", 
+                                            "smokes", 
+                                            "Unknown")),
+         stroke = factor(stroke, 
+                         labels = c("no_stroke", "stroke"), 
+                         levels = c("0","1")))
+```
+
+A basic analysis of this dataset once created is shown below.
+
+\vspace{11pt}
+**stroke_data Object Summary:**
+```{r stroke_data summary, echo=TRUE, message=TRUE, warning=FALSE, eval=TRUE}
+# Summary information of the "stroke_data" dataset
+summary(stroke_data)
+```
+**stroke_data Data Structure:**
+```{r stroke_data structure, echo=TRUE, message=TRUE, warning=FALSE, eval=TRUE}
+# Structure of the "stroke_data" dataset
+str(stroke_data)
+```
+
+In the `rawdata` structure output in Section 3, it can be seen that the system generating the `Stroke-Data.csv` data replaced any null (empty) `bmi` fields with the characters "`N/A`".  When the `stroke_data` dataset converted those "`N/A`" character entries to numeric format, `NA`'s were introduced in their place by coercion.
+
+\newpage
+**bmi "NA" Quantity & Percentage Calculations:**
+```{r bmi NA percentage calculation, echo=TRUE, message=TRUE, warning=FALSE, eval=TRUE}
+# Calculate the number of bmi N/A entries as a percentage of the total.
+bmi_na_num <- sum(is.na(stroke_data$bmi))
+bmi_na_num
+
+bmi_na_pct_tot <- (bmi_na_num/NROW(stroke_data$bmi))*100
+bmi_na_pct_tot
+```
+
+With the resulting quantity of `bmi` `NA`'s being `r bmi_na_num` (accounting for almost `r round(bmi_na_pct_tot)`% of the entire dataset), the number of entries justifies looking into the statistical impact against the overall outcome.  With the outcome being stratified into `no_stroke` or `stroke` results, determining the stroke-negative and stroke-positive percentages these `NA`'s have will show whether they can be excluded from further calculations.
+
+\vspace{11pt}
+**bmi "NA" Stroke/No-Stroke Percentage Calculations:**
+```{r bmi NA per predictor percentage calculation, echo=TRUE, message=TRUE, warning=FALSE, eval=TRUE}
+# Calculate statistical significance the stroke-positive vs. stroke-negative NA's 
+# would have on the predictability.
+bmi_na_pct_stroke <- 
+  (length(which(is.na(stroke_data$bmi) & stroke_data$stroke == "stroke"))/
+     NROW(stroke_data$bmi))*100     
+bmi_na_pct_stroke #Stroke-Positive Percentage
+
+bmi_na_pct_nostroke <- 
+  (length(which(is.na(stroke_data$bmi) & stroke_data$stroke == "no_stroke"))/
+     NROW(stroke_data$bmi))*100
+bmi_na_pct_nostroke #Stroke-Negative Percentage
+```
+
+As shown above, the `NA` entries in the `bmi` variable have a `r round(bmi_na_pct_stroke, 4)`% and `r round(bmi_na_pct_nostroke, 4)`% impact to the predictability of a `stroke` vs. `no_stroke` result, respectively.  If this difference had been closer to a 50%/50% split, we could possibly omit the `NA` `bmi` entries since their presence would not impact the overall correlation of `bmi` value to a `stroke`/`no_stroke` outcome. The `NA`'s instead will be replaced with the mean `bmi` values for `stroke`/`no_stroke` results, accordingly.
+
+\vspace{11pt}
+ **bmi "NA" Replacement:**
+```{r bmi NA mean calculations, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+# Calculate the mean bmi in the dataset for all non-"NA" bmi entries that were also 
+# stroke-negative.
+ns_bmi_mu <- as.numeric(stroke_data %>% filter(!is.na(bmi) & stroke=="no_stroke") %>% 
+  summarize(bmi_mu=mean(bmi)))
+
+# Calculate the mean bmi in the dataset for all non-"NA" bmi entries that were also 
+# stroke-positive.
+s_bmi_mu <- as.numeric(stroke_data %>% filter(!is.na(bmi) & stroke=="stroke") %>% 
+  summarize(bmi_mu=mean(bmi)))
+
+# Replace all bmi "NA" entries with the stroke-positive or stroke-negative mean bmi 
+# values, accordingly.
+stroke_data <- stroke_data %>% 
+  mutate(bmi = case_when(is.na(bmi) & stroke == "stroke" ~ s_bmi_mu, 
+                         is.na(bmi) & stroke == "no_stroke" ~ ns_bmi_mu, 
+                         TRUE ~ bmi))
+```
+
+### 4.2.1 `stroke_data_num` Dataset
+
+While the factor variables in the `stroke_data` dataset allow for easier graphical analysis, correlation coefficient functions like `cor()`, `cor.test()`, and `corrplot()` will be used in later sections for analyzing variable importance.  This requires that the factors be converted into numeric format.  The `stroke_data` dataset will be copied into a new dataset called `stroke_data_num` with the exception of the `id` column, since that variable is not necessary for this purpose, and all necessary variables will be converted accordingly.
+
+\vspace{11pt}
+```{r stroke_data_num table creation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create the fully-numeric "stroke_data_num" dataset, copying the original
+# "stroke_data" dataset and convert all factor variables.
+stroke_data_num <- stroke_data %>% mutate(gender=as.numeric(gender),
+                                          hypertension=as.numeric(hypertension),
+                                          heart_disease=as.numeric(heart_disease),
+                                          ever_married=as.numeric(ever_married),
+                                          work_type=as.numeric(work_type),
+                                          Residence_type=as.numeric(Residence_type),
+                                          smoking_status=as.numeric(smoking_status),
+                                          stroke=as.numeric(stroke)) %>%
+  select(-id) #Leave out the "id" column as it is not needed for correlation analysis
+```
+
+**stroke_data_num Data Structure:**
+```{r stroke_data_num structure, echo=TRUE, message=TRUE, warning=FALSE, eval=TRUE}
+# Structure of the "stroke_data_num" dataset
+str(stroke_data_num)
+```
+
+## 4.3 `stroke_train` and `stroke_test` Modeling Datasets
+
+Now that the data is ready for model development, the `stroke_data` data frame will be split with a 80%/20% ratio into a training subset called `stroke_train` (4,087 rows) and a test subset called `stroke_test` (1,022 rows), respectively.
+
+\vspace{11pt}
+**stroke_train and stroke_test Subset Creation Code Snippet:**
+```{r stroke_train and stroke_test subset creation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+# The training dataset, "stroke_train", and validation test dataset, 
+# "stroke_test", will be created from an 80%/20% split of the "stroke_data"
+# data frame, respectively.
+set.seed(1, sample.kind="Rounding")
+test_index <- createDataPartition(y = stroke_data$stroke, times = 1, p = 0.2, list = FALSE)
+stroke_train <- stroke_data[-test_index,]
+stroke_test <- stroke_data[test_index,]
+```
+
+**stroke_train and stroke_test Object Summary:**
+```{r stroke_train and stroke_test summary, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+# Summary information for the "stroke_train" dataset.
+summary(stroke_train)
+
+# Summary information for the "stroke_test" dataset.
+summary(stroke_test)
+```
+
+The analysis and charting in the next section (Section 4.4) will use the larger `stroke_data` dataset, while the modeling section (Section 5) will use the smaller `stroke_train`/`stroke_test` datasets for model development.
+
+## 4.4 Dataset Analysis
+
+Reviewing the datasets in raw format, along with creating correlative visual aids is necessary when comparing and contrasting the data.  Basic analysis of each dataset has been done following their creation in previous sections.  This section will focus on studying the data itself and any correlations that can aid in model selection.
+
+\vspace{11pt}
+**stroke_data Object Glimpse:**
+```{r stroke_data glimpse, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+# Get a quick glimpse of the data in stroke_data.
+glimpse(stroke_data, width=80)
+```
+
+\newpage
+
+In **Figure 4.4.1** below, a grid of eight bar graphs shows a graphical breakdown of all factors and their individual category (level) quantities.  The Male/Female ratio is split fairly close at `r round((count(stroke_data %>% filter(gender=="Male"))/NROW(stroke_data))*100)`% to `r round((count(stroke_data %>% filter(gender=="Female"))/NROW(stroke_data))*100)`%, respectively.  The distribution of individuals diagnosed with hypertension, heart_disease, and/or stroke is very imbalanced, which will require further correlative review among the other predictors to determine any statistical significance.  The `smoking_status` factor has a fairly large quantity of individuals in the `Unknown` category (where their status was unavailable at time of entry), which could skew the correlation coefficient between it and `stroke`.  The residence type is split almost 50/50 between `Rural` and `Urban`, which means that predictor will have little to no impact on the prediction model.
+
+\vspace{11pt}
+```{r stroke_data variable count comparison grid, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE, fig.height = 11.6, fig.width = 11.5}
+# Gender Count Chart
+chart_gender_count <- stroke_data %>% group_by(gender) %>%	
+  summarize(n=n()) %>%	
+  ggplot(aes(x=gender, y=n)) +	
+  geom_bar(stat="identity", color = "orange", fill = "dodgerblue4") + 	
+  scale_y_continuous(breaks = seq(0, 4000, by=1000), labels = comma, limits = c(0,3500)) +	
+  labs(x = "Gender Count",	
+       y = "",	
+       title = "Gender Distribution") +	
+  geom_text(aes(label=n), vjust=-0.5, size=6) +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Hypertension Count Chart
+chart_hypertension_count <- stroke_data %>% group_by(hypertension) %>%	
+  summarize(n=n()) %>%	
+  ggplot(aes(x=hypertension, y=n)) +	
+  geom_bar(stat="identity", color = "orange", fill = "dodgerblue4") + 	
+  scale_y_continuous(breaks = seq(0, 6000, by=1000), labels = comma, limits = c(0,6000)) +	
+  labs(x = "Hypertension Count",	
+       y = "",	
+       title = "Hypertension Distribution") +	
+  geom_text(aes(label=n), vjust=-0.5, size=6) +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+ #Heart Disease Count Chart
+chart_heart_disease_count <- stroke_data %>% group_by(heart_disease) %>%	
+  summarize(n=n()) %>%	
+  ggplot(aes(x=heart_disease, y=n)) +	
+  geom_bar(stat="identity", color = "orange", fill = "dodgerblue4") + 	
+  scale_y_continuous(breaks = seq(0, 6000, by=1000), labels = comma, limits = c(0,6000)) +	
+  labs(x = "Heart Disease Cases",	
+       y = "",	
+       title = "Heart Disease Distribution") +	
+  geom_text(aes(label=n), vjust=-0.5, size=6) +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Ever Married Count Chart
+chart_ever_married_count <- stroke_data %>% group_by(ever_married) %>%	
+  summarize(n=n()) %>%	
+  ggplot(aes(x=ever_married, y=n)) +	
+  geom_bar(stat="identity", color = "orange", fill = "dodgerblue4") + 	
+  scale_y_continuous(breaks = seq(0, 5000, by=1000), labels = comma, limits = c(0,5000)) +	
+  labs(x = "History of Marriage",	
+       y = "",	
+       title = "History of Marriage Distribution") +	
+  geom_text(aes(label=n), vjust=-0.5, size=6) +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Work Type Count Chart
+chart_work_type_count <- stroke_data %>% group_by(work_type) %>%	
+  summarize(n=n()) %>%	
+  ggplot(aes(x=work_type, y=n)) +	
+  geom_bar(stat="identity", color = "orange", fill = "dodgerblue4") + 	
+  scale_y_continuous(breaks = seq(0, 4000, by=1000), labels = comma, limits = c(0,3500)) +	
+  labs(x = "Type of Work",	
+       y = "",	
+       title = "Work Type Distribution") +	
+  geom_text(aes(label=n), vjust=-0.5, size=6) +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Residence Type Count Chart
+chart_Residence_type_count <- stroke_data %>% group_by(Residence_type) %>%	
+  summarize(n=n()) %>%	
+  ggplot(aes(x=Residence_type, y=n)) +	
+  geom_bar(stat="identity", color = "orange", fill = "dodgerblue4") + 	
+  scale_y_continuous(breaks = seq(0, 4000, by=1000), labels = comma, limits = c(0,3500)) +	
+  labs(x = "Type of Residence",	
+       y = "",	
+       title = "Residence Type Distribution") +	
+  geom_text(aes(label=n), vjust=-0.5, size=6) +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Smoking Status Count Chart
+chart_smoking_status_count <- stroke_data %>% group_by(smoking_status) %>%	
+  summarize(n=n()) %>%	
+  ggplot(aes(x=smoking_status, y=n)) +	
+  geom_bar(stat="identity", color = "orange", fill = "dodgerblue4") + 	
+  scale_y_continuous(breaks = seq(0, 4000, by=1000), labels = comma, limits = c(0,3500)) +	
+  labs(x = "Smoking Status",	
+       y = "",	
+       title = "Smoking Distribution") +	
+  geom_text(aes(label=n), vjust=-0.5, size=6) +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Stroke Count Chart
+chart_stroke_count <- stroke_data %>% group_by(stroke) %>%	
+  summarize(n=n()) %>%	
+  ggplot(aes(x=stroke, y=n)) +	
+  geom_bar(stat="identity", color = "orange", fill = "dodgerblue4") + 	
+  scale_y_continuous(breaks = seq(0, 6000, by=1000), labels = comma, limits = c(0,6000)) +	
+  labs(x = "Stroke History",	
+       y = "",	
+       title = "Stroke Distribution") +	
+  geom_text(aes(label=n), vjust=-0.5, size=6) +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Arrange the eight charts into 2-column/4-row structure and add a caption.
+grid.arrange(chart_gender_count, 
+             chart_hypertension_count, 
+             chart_heart_disease_count,
+             chart_ever_married_count,
+             chart_work_type_count,
+             chart_Residence_type_count,
+             chart_smoking_status_count,
+             chart_stroke_count,
+             ncol = 2,
+             nrow = 4,
+             bottom = textGrob(
+               "Source Data: stroke_data\nFigure 4.4.1",
+               gp = gpar(fontface = 3, fontsize = 10),
+               hjust = 1,
+               x = 1
+               )
+             )
+```
+
+\newpage
+
+In **Figure 4.4.2** below, a grid of six charts shows a graphical comparison of various predictors as they relate to patient age.  When reviewing the charts showing hypertension, heart disease, and history of stroke as it relates to patient age, those predictors have little prevalence in patients under 35 years old.  
+
+\vspace{11pt}
+The `Unknown` smoking status category, when stratified by age, shows a trend in minors that can be explained by the parent/guardian of the patient viewing the smoking section of the doctor's/hospital admission forms as "not applicable".  The relevant age of the `smoking_status` predictor, unlike hypertension and heart disease, starts around age 15 as that is when the `smokes` category increases rapidly.  
+
+\vspace{11pt}
+The age distribution by gender shows a similar curve between Male/Female from ages 30 and up, but there are more Male patients that are minors.  
+
+\vspace{11pt}
+```{r charts of various predictors by age, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE, fig.height = 11.45, fig.width = 11.5}
+# Histogram of all patients by their age.
+chart_age <- stroke_data %>% group_by(age) %>% 
+  ggplot(aes(age)) +	
+  geom_histogram(binwidth = 1, color = "orange", fill = "dodgerblue4") +	
+  scale_x_continuous(breaks = seq(0, 100, by=5)) +
+  labs(x = "Age (in years)",
+       y = " ",
+       title = "Age Distribution (all patients)") + 
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Bar graph of those with hypertension distributed by their age.
+chart_hypertension_by_age <- stroke_data %>% filter(hypertension=="w_hypertension") %>%		
+  ggplot(aes(age)) +	
+  geom_bar(color = "orange", fill = "dodgerblue4") +	
+  scale_x_continuous(breaks = seq(0, 100, by=5)) +	
+  labs(x = "Age (in years)" , 	
+       y = "Patients with Hypertension", 	
+       title = "Hypertension Distribution (by age in years)") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Bar graph of those with heart_disease distributed by their age.
+chart_heart_disease_by_age <- stroke_data %>% filter(heart_disease=="w_heart_disease") %>% 
+  ggplot(aes(age)) +	
+  geom_bar(color = "orange", fill = "dodgerblue4") +	
+  scale_x_continuous(breaks = seq(0, 100, by=5)) +	
+  labs(x = "Age (in years)" , 	
+       y = "Patients with Heart Disease", 	
+       title = "Heart Disease Distribution (by age in years)") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Graph of age by gender
+chart_age_by_gender <- stroke_data %>% ggplot(aes(age)) +
+  geom_histogram(binwidth=1, color = "orange", fill = "dodgerblue4") +
+  scale_x_continuous(breaks = seq(0, 100, by=10)) +
+  facet_wrap(~gender) +
+  labs(x = "Age (in years)",
+       y = " ",
+       title = "Age Distribution (in years, by gender)") + 
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Bar graph of stroke by age.
+chart_stroke_by_age <- stroke_data %>% filter(stroke=="stroke") %>% 
+  ggplot(aes(age)) +	
+  geom_bar(color = "orange", fill = "dodgerblue4") +	
+  scale_x_continuous(breaks = seq(0, 100, by=5)) +	
+  labs(x = "Age (in years)" , 	
+       y = "Patients with Stroke", 	
+       title = "Stroke Distribution (by age in years)") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Density plot of smoking status by age
+chart_smoking_status_by_age <- stroke_data %>% 
+  ggplot(aes(age, fill = smoking_status, color = smoking_status)) +	
+  geom_density(alpha = 0.3) +
+  scale_fill_manual(values = c("Unknown" = "gray",
+                             "never smoked" = "springgreen4", 
+                             "formerly smoked" = "dodgerblue4", 
+                             "smokes" = "firebrick4")) + 
+  scale_color_manual(values = c("Unknown" = "gray",
+                              "never smoked" = "springgreen4", 
+                              "formerly smoked" = "dodgerblue4", 
+                              "smokes" = "firebrick4")) + 
+  scale_x_continuous(breaks = seq(0, 100, by=5)) + 
+  scale_y_continuous(breaks = seq(0,0.025,by=0.01)) +
+  labs(x = "Age (in years)" , 	
+       y = " ", 	
+       title = "Smoking Status Distribution (by age in years)",
+       color = "Smoking Status",
+       fill = "Smoking Status") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Arrange the six charts into 2-column/4-row structure and add a caption.
+grid.arrange(chart_age,
+             chart_age_by_gender,
+             chart_hypertension_by_age, 
+             chart_heart_disease_by_age,
+             chart_smoking_status_by_age,
+             chart_stroke_by_age,
+             ncol = 2,
+             nrow = 3,
+             bottom = textGrob(
+               "Source Data: stroke_data\nFigure 4.4.2",
+               gp = gpar(fontface = 3, fontsize = 10),
+               hjust = 1,
+               x = 1
+               )
+)
+```
+
+\newpage
+
+The average blood sugar (glucose) level and BMI distribution charts (**Figure 4.4.3 below**) both show anticipated trends (though both are fairly flat) where the body's ability to manage blood sugar lowers over time (causing the average levels to increase with age), and the BMI increases as you reach middle-age, then lowers a little in the very late stages of life.
+
+\vspace{11pt}
+```{r plots of glucose level and bmi by age, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE, fig.height = 11, fig.width = 11.5}
+# Plot of average glucose level by Age
+chart_avg_glucose_level_by_age <- stroke_data %>% group_by(avg_glucose_level) %>%	
+  ggplot(aes(age, avg_glucose_level)) +	
+  geom_point(alpha = 0.35, color = "dodgerblue4") + 	
+  geom_smooth(method = loess, color = "orange") +	
+  geom_hline(aes(yintercept = mean(avg_glucose_level)), color = "orange", linetype = 'dashed', size=1) +	
+  labs(x = "Age  (in years)" , 	
+       y = "Average Glucose Level", 	
+       title = "Average Glucose Level Distribution",
+       subtitle = "(by age in years)") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Plot of BMI by Age
+chart_bmi_by_age <- stroke_data %>% group_by(bmi) %>%	
+  ggplot(aes(age, bmi)) +	
+  geom_point(alpha = 0.35, color = "dodgerblue4") + 	
+  geom_smooth(method = loess, color = "orange") +	
+  geom_hline(aes(yintercept = mean(bmi)), color = "orange", linetype = 'dashed', size=1) +	
+  labs(x = "Age (in years)" , 	
+       y = "Body Mass Index (BMI)", 	
+       title = "BMI Distribution",
+       subtitle = "(by age in years)") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Scatter Plot of BMI by type of work
+chart_bmi_by_work_type <- stroke_data %>% ggplot(aes(id,bmi)) +
+  geom_point(aes(color = work_type), alpha = 0.3) + 
+  scale_color_manual(values = c("Underage_child" = "purple", 
+                                "Never_worked" = "red", 
+                                "Self-employed" = "green",
+                                "Private_company" = "dodgerblue4",
+                                "Govt_job" = "orange")) +
+  labs(x = "Patient (id)",
+       y = "Body Mass Index (bmi)",
+       title = "BMI Distribution",	
+       subtitle = "(by type of work)",
+       color = "Type of Work") + 
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Arrange the three charts into 2-column/2-row structure, centering the 3rd 
+# chart on the second row, and add a caption.
+grid.arrange(chart_avg_glucose_level_by_age,
+             chart_bmi_by_age,
+             chart_bmi_by_work_type,
+             ncol = 2,
+             nrow = 2,
+             layout_matrix = rbind(c(1,2),
+                                   c(3,3)),
+             bottom = textGrob(
+               "Source Data: stroke_data\nFigure 4.4.3",
+               gp = gpar(fontface = 3, fontsize = 10),
+               hjust = 1,
+               x = 1
+               )
+)
+```
+
+\newpage
+
+In **Figure 4.4.4** below, a grid of eight charts shows a graphical comparison of various predictors as they relate to stroke occurrence.  Since **Figure 4.4.1** showed a stroke count of only `r NROW(stroke_data %>% filter(stroke=="stroke"))`, out of a possible `r NROW(stroke_data)`, it is unsurprising that they appear highly imbalanced.  All charts show an evenly-scaled distribution of stroke/no_stroke occurrences among each predictor (not previously charted) or its categories.
+
+\vspace{11pt}
+```{r charts of various predictors by stroke history, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE, fig.height = 13, fig.width = 11.5}
+# Bar chart of those with a history of stroke by their gender.
+chart_stroke_by_gender <- stroke_data %>% group_by(gender) %>% 
+  ggplot(aes(gender, fill = stroke)) +	
+  geom_bar(color = "orange", position = "dodge") +
+  scale_fill_manual(values = c("no_stroke" = "dodgerblue4", "stroke" = "dodgerblue")) + 
+  scale_y_continuous(breaks = seq(0, 4000, by=500), labels = comma) + 
+  labs(x = "Gender" , 	
+       y = "Number of Occurances", 	
+       title = "Stroke Distribution (by gender)") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Bar chart of stroke distribution by hypertension history.
+chart_stroke_by_hypertension <- stroke_data %>% group_by(hypertension) %>% 
+  ggplot(aes(hypertension, fill = stroke)) +	
+  geom_bar(color = "orange", position = "dodge") +
+  scale_fill_manual(values = c("no_stroke" = "dodgerblue4", "stroke" = "dodgerblue")) + 
+  scale_y_continuous(breaks = seq(0, 6000, by=500), labels = comma) + 
+  labs(x = "Hypertension History" , 	
+       y = "Number of Occurances", 	
+       title = "Stroke Distribution",
+       subtitle = "(by hypertension diagnosis)") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Bar chart of stroke distribution by heart disease history.
+chart_stroke_by_heart_disease <- stroke_data %>% group_by(heart_disease) %>% 
+  ggplot(aes(heart_disease, fill = stroke)) +	
+  geom_bar(color = "orange", position = "dodge") +
+  scale_fill_manual(values = c("no_stroke" = "dodgerblue4", "stroke" = "dodgerblue")) + 
+  scale_y_continuous(breaks = seq(0, 6000, by=500), labels = comma) + 
+  labs(x = "Hypertension History" , 	
+       y = "Number of Occurances", 	
+       title = "Stroke Distribution (by hypertension diagnosis)") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Bar chart of stroke distribution by marriage history.
+chart_stroke_by_ever_married <- stroke_data %>% group_by(ever_married) %>% 
+  ggplot(aes(ever_married, fill = stroke)) +	
+  geom_bar(color = "orange", position = "dodge") +
+  scale_fill_manual(values = c("no_stroke" = "dodgerblue4", "stroke" = "dodgerblue")) + 
+  scale_y_continuous(breaks = seq(0, 4000, by=500), labels = comma) + 
+  labs(x = "Marriage History" , 	
+       y = "Number of Occurances", 	
+       title = "Stroke Distribution (by marriage history)") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Bar chart of stroke distribution by type of work.
+chart_stroke_by_work_type <- stroke_data %>% group_by(work_type) %>% 
+  ggplot(aes(work_type, fill = stroke)) +	
+  geom_bar(color = "orange", position = "dodge") +
+  scale_fill_manual(values = c("no_stroke" = "dodgerblue4", "stroke" = "dodgerblue")) + 
+  scale_y_continuous(breaks = seq(0, 3000, by=500), labels = comma) + 
+  labs(x = "Type of Work" , 	
+       y = "Number of Occurances", 	
+       title = "Stroke Distribution (by type of work)") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 	
+
+# Density chart of Stroke Distribution by BMI
+chart_stroke_by_bmi <- stroke_data %>% ggplot(aes(bmi, fill = stroke, color = stroke)) +	
+  geom_density(alpha = 0.4) +
+  scale_fill_manual(values = c("stroke" = "dodgerblue", "no_stroke" = "dodgerblue4")) + 
+  scale_color_manual(values = c("stroke" = "dodgerblue", "no_stroke" = "dodgerblue4")) + 
+  scale_x_continuous(breaks = seq(0, 100, by=5)) + 
+  scale_y_continuous(breaks = seq(0,0.2,by=0.05)) +
+  labs(x = "Body Mass Index (BMI)" , 	
+       y = " ", 	
+       title = "Stroke Distribution (by bmi)",
+       color = "Stroke",
+       fill = "Stroke") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 
+
+# Density chart of Stroke Distribution by average glucose level
+chart_stroke_by_avg_glucose_level <- stroke_data %>% 
+  ggplot(aes(avg_glucose_level, 
+             fill = stroke, color = stroke)) +	
+  geom_density(alpha = 0.5) +
+  scale_fill_manual(values = c("stroke" = "dodgerblue", "no_stroke" = "dodgerblue4")) + 
+  scale_color_manual(values = c("stroke" = "dodgerblue", "no_stroke" = "dodgerblue4")) + 
+  scale_x_continuous(breaks = seq(0, 300, by=20)) + 
+  scale_y_continuous(breaks = seq(0,0.025,by=0.01)) +
+  labs(x = "Average Glucose Level" , 	
+       y = " ", 	
+       title = "Stroke Distribution (by average glucose level)",
+       color = "Stroke",
+       fill = "Stroke") +	
+  theme(panel.border = element_rect(color = "black", fill = NA)) 
+
+# Bar chart of stroke history by smoking status
+chart_stroke_by_smoking_status <- stroke_data %>% group_by(smoking_status) %>% 
+  ggplot(aes(smoking_status, fill = stroke)) +	
+  geom_bar(color = "orange", position = "dodge") +
+  scale_fill_manual(values = c("no_stroke" = "dodgerblue4", "stroke" = "dodgerblue")) + 
+  scale_y_continuous(breaks = seq(0, 4000, by=500), labels = comma) + 
+  labs(x = "Smoking Status" , 	
+       y = "Number of Occurances", 	
+       title = "Stroke Distribution (by smoking status)") +	
+  theme(panel.border = element_rect(color = "black", fill = NA))
+
+# Arrange the eight charts into 2-column/4-row structure and add a caption.
+grid.arrange(chart_stroke_by_gender,
+             chart_stroke_by_hypertension,
+             chart_stroke_by_heart_disease,
+             chart_stroke_by_ever_married,
+             chart_stroke_by_work_type,
+             chart_stroke_by_bmi,
+             chart_stroke_by_avg_glucose_level,
+             chart_stroke_by_smoking_status,
+             ncol = 2,
+             nrow = 4,
+             bottom = textGrob(
+               "Source Data: stroke_data\nFigure 4.4.4",
+               gp = gpar(fontface = 3, fontsize = 10),
+               hjust = 1,
+               x = 1
+               )
+)
+```
+
+\newpage
+
+While the charts allow the ability to correlate the predictors to the outcome by sight, it is as (if not more) important to confirm statistically what can be surmised visually.  Using the `corrplot` package, a visual representation of actual correlation coefficient data can be maintained:
+
+\vspace{11pt}
+\underline{\textbf{Correlation Coefficient Chart}}
+  
+\vspace{11pt}
+```{r correlation matrix, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create the correlation matrix using the Pearson method.
+correlation <- cor(stroke_data_num, method = c("pearson"))
+# Create a correlation coefficient visualization to determine relevant factors.
+corrplot(correlation, 
+         type = "upper", 
+         order = "AOE", 
+         tl.col = "black", 
+         tl.srt = 45)
+```
+  
+  
+\vspace{11pt}
+```{r correlation table, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create correlation variables for each correlation coefficient's output
+cor_gender <- cor(stroke_data_num$gender, stroke_data_num$stroke)
+cor_age <- cor(stroke_data_num$age, stroke_data_num$stroke)
+cor_hypertension <- cor(stroke_data_num$hypertension, stroke_data_num$stroke)
+cor_heart_disease <- cor(stroke_data_num$heart_disease, stroke_data_num$stroke)
+cor_ever_married <- cor(stroke_data_num$ever_married, stroke_data_num$stroke)
+cor_work_type <- cor(stroke_data_num$work_type, stroke_data_num$stroke)
+cor_Residence_type <- cor(stroke_data_num$Residence_type, stroke_data_num$stroke)
+cor_bmi <- cor(stroke_data_num$bmi, stroke_data_num$stroke)
+cor_avg_glucose_level <- cor(stroke_data_num$avg_glucose_level, stroke_data_num$stroke)
+cor_smoking_status <- cor(stroke_data_num$smoking_status, stroke_data_num$stroke)
+
+# Create a table title variable with the list of dataset variable names
+cor_table_titles <- c("gender","age","hypertension","heart_disease","ever_married",
+                       "work_type","Residence_type","bmi","avg_glucose_level",
+                      "smoking_status")
+
+# Create a variable with a list of dataset correlation coefficient results.
+cor_table_coeffs <- c(cor_gender,cor_age,cor_hypertension,cor_heart_disease,
+                      cor_ever_married,cor_work_type,cor_Residence_type,cor_bmi,
+                      cor_avg_glucose_level,cor_smoking_status)
+# Create a table with the "cor_table_titles" contents in the left column, and 
+# the "cor_table_coeffs" contents in the right column.
+kable(tibble(cor_table_titles, cor_table_coeffs),
+      col.names = c("Variable Name", "Correlation Coefficient to Stroke")) %>%
+  row_spec(0,background="#104E8B", color="white") %>% 
+  column_spec(2, bold=TRUE) %>% 
+  kable_styling(bootstrap_options="bordered", 
+                full_width=FALSE, 
+                position="center",
+                latex_options="HOLD_position")
+```
+
+The table above shows the correlation coefficient amounts for each applicable variable.  The `id` column was removed during dataset creation since there's no direct correlation with that field, and running the `cor()` command against the `stroke` variable would always be 1, so it was not added to the table.
+
+\vspace{11pt}
+The data shows that the `age`, `heart_disease`, `avg_glucose_level`, and `hypertension` are the most relevant predictors to `stroke`.
+
+\newpage
+
+# 5. MODELING
+Throughout the data analysis performed above, some data point comparisons show the possibility of higher correlations while others appear they would have little impact to the overall predictability, and thus the model.  To determine the impact of each predictor, various models will be tested, starting with logistic regression and then including Naive Bayes, linear discriminant analysis, classification and regression trees, random forest, and k-Nearest Neighbor.  Each resultant accuracy calculation will be summarized in a list with previous results as to make it easy to compare all results and determine which model performs the best (having the highest accuracy score).
+
+\vspace{11pt}
+\underline{Cross-Validation Training Options Code Snippet:}
+```{r traincontrol variable creation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+# Model cross-validation training options variable creation.
+fitControl <- trainControl(method = "cv",  #cross-validation
+                           number = 10)    #10-fold cross-validation 
+```
+
+## Model 1: Logistic Regression (GLM)
+
+The logistic regression is a very basic and frequently used machine learning model where independent variables determine a binary outcome, such as the stroke prediction in this dataset.  The conditional probability can be modeled as:
+$$g\{Pr(Y=1|X=x)\}=\beta_0+\beta_1$$
+
+```{r model 1 calculation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+set.seed(1, sample.kind = "Rounding")
+# Train the logistic regression model with the generalized linear model (GLM) 
+# method, using the fitControl tuning parameters.
+model1_fit <- train(stroke ~ ., data = stroke_train,
+                   method = "glm",
+                   preProcess=c("center", "scale"),
+                   trControl = fitControl)
+model1_fit
+
+# Predict the outcome from the stroke_test dataset
+model1_preds <- predict(model1_fit, stroke_test)
+
+# Calculate the accuracy of the model against the stroke_test dataset.
+model1_accuracy <- confusionMatrix(model1_preds, stroke_test$stroke)$overall["Accuracy"]
+model1_accuracy
+```
+
+Using the `stroke_test` data, the accuracy for this model is calculated to be `r model1_accuracy`.
+
+\vspace{11pt}
+```{r Model 1 Accuracy table, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create a table containing the Model 1 data results.
+model_table_titles <- "Model 1: Logistic Regression (GLM)"
+model_table_accuracy <- model1_accuracy
+kable(tibble(model_table_titles, model_table_accuracy),
+      col.names = c("Model", "Accuracy")) %>%
+  row_spec(0,background="#104E8B", color="white") %>% 
+  column_spec(2, bold=TRUE) %>% 
+  kable_styling(bootstrap_options="bordered", 
+                full_width=FALSE, 
+                position="center",
+                latex_options="HOLD_position")
+```
+
+
+## Model 2: Naive Bayes
+
+The Naive Bayes model, based on Bayes Theorem[^Bayes], estimates the outcome by estimating the conditional distribution of the predictors, which also assumes independence among the predictors.  The naive model can be written as:
+$$p(x)=Pr(Y=1|X=x)=\frac{f_{X|Y=1}(X)Pr(Y=1)}{f_{X|Y=0}(X)Pr(Y=0)+f_{X|Y=1}(X)Pr(Y=1)}$$
+
+With $f_{X|Y=1}$ and $f_{X|Y=0}$ representing the distribution functions of the predictor $X$ for the two classes $Y=1$ and $Y=0$.
+
+[^Bayes]: https://rafalab.github.io/dsbook/
+
+```{r model 2 calculation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+set.seed(1, sample.kind = "Rounding")
+# Train the Naive Bayes model using the fitControl tuning parameters.
+model2_fit <- train(stroke ~ ., data = stroke_train,
+                   method = "naive_bayes",
+                   preProcess=c("center", "scale"),
+                   trControl = fitControl)
+model2_fit
+
+# Predict the outcome from the stroke_test dataset
+model2_preds <- predict(model2_fit, stroke_test)
+
+# Calculate the accuracy of the model against the stroke_test dataset.
+model2_accuracy <- confusionMatrix(model2_preds, stroke_test$stroke)$overall["Accuracy"]
+model2_accuracy
+```
+
+Using the `stroke_test` data, the accuracy for this model is calculated to be `r model2_accuracy`.
+
+\vspace{11pt}
+```{r Model 2 Accuracy table, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create a table containing the Model 2 data results.
+model_table_titles <- c(model_table_titles, "Model 2: Naive Bayes")
+model_table_accuracy <- c(model_table_accuracy, model2_accuracy)
+kable(tibble(model_table_titles, model_table_accuracy),
+      col.names = c("Model", "Accuracy")) %>%
+  row_spec(0,background="#104E8B", color="white") %>% 
+  column_spec(2, bold=TRUE) %>% 
+  kable_styling(bootstrap_options="bordered", 
+                full_width=FALSE, 
+                position="center",
+                latex_options="HOLD_position")
+```
+
+## Model 3: Linear Discriminant Analysis (LDA)
+
+The linear discriminant analysis model improved upon Naive Bayes by using a dimensionality reduction technique that estimates the probability that a new set of inputs belongs to every class.  The resultant output class is the one that has the highest probability (the prediction).
+
+\vspace{11pt}
+```{r model 3 calculation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+set.seed(1, sample.kind = "Rounding")
+# Train the LDA model using the fitControl tuning parameters.
+model3_fit <- train(stroke ~ ., data = stroke_train,
+                   method = "lda",
+                   preProcess=c("center", "scale"),
+                   trControl = fitControl)
+model3_fit
+
+# Predict the outcome from the stroke_test dataset
+model3_preds <- predict(model3_fit, stroke_test)
+
+# Calculate the accuracy of the model against the stroke_test dataset.
+model3_accuracy <- confusionMatrix(model3_preds, stroke_test$stroke)$overall["Accuracy"]
+model3_accuracy
+```
+
+Using the `stroke_test` data, the accuracy for this model is calculated to be `r model3_accuracy`.
+
+\vspace{11pt}
+```{r Model 3 Accuracy table, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create a table containing the Model 3 data results.
+model_table_titles <- c(model_table_titles, "Model 3: Linear Discriminant Analysis (LDA)")
+model_table_accuracy <- c(model_table_accuracy, model3_accuracy)
+kable(tibble(model_table_titles, model_table_accuracy),
+      col.names = c("Model", "Accuracy")) %>%
+  row_spec(0,background="#104E8B", color="white") %>% 
+  column_spec(2, bold=TRUE) %>% 
+  kable_styling(bootstrap_options="bordered", 
+                full_width=FALSE, 
+                position="center",
+                latex_options="HOLD_position")
+```
+
+## Model 4: Classification and Regression Trees Model (CART)
+
+Classification (decision) trees build up a set of decision rules that "branch out" to form a tree structure, similar to a flow chart.  This branching helps predict an outcome based on the input data.
+
+\vspace{11pt}
+The Gini Index:
+$$\text{Gini}(j)=\sum_{k=1}^K\hat{p}_{j,k}(1-\hat{p}_{j,k})$$
+
+or Entropy (below) can be used as a metric for classifiers in the classification tree method.
+$$entropy(j)=-\sum_{k=1}^K\hat{p}_{j,k}\log(\hat{p}_{j,k})\text{, with 0 x log(0) defined as 0}$$
+
+```{r model 4 calculation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+set.seed(1, sample.kind = "Rounding")
+# Train the Decision Tree model, setting the tuning parameters.
+model4_fit <- train(stroke ~ ., data = stroke_train,
+                   method = "rpart",
+                   preProcess=c("center", "scale"),
+                   tuneGrid = data.frame(cp = seq(0.0, 0.1, len = 25)))
+model4_fit
+
+# Predict the outcome from the stroke_test dataset
+model4_preds <- predict(model4_fit, stroke_test)
+
+# Calculate the accuracy of the model against the stroke_test dataset.
+model4_accuracy <- confusionMatrix(model4_preds, stroke_test$stroke)$overall["Accuracy"]
+model4_accuracy
+```
+
+Using the `stroke_test` data, the accuracy for this model is calculated to be `r model4_accuracy`.
+
+\vspace{11pt}
+```{r Model 4 Accuracy table, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create a table containing the Model 4 data results.
+model_table_titles <- c(model_table_titles, "Model 4: Classification and Regression Trees Model (CART)")
+model_table_accuracy <- c(model_table_accuracy, model4_accuracy)
+kable(tibble(model_table_titles, model_table_accuracy),
+      col.names = c("Model", "Accuracy")) %>%
+  row_spec(0,background="#104E8B", color="white") %>% 
+  column_spec(2, bold=TRUE) %>% 
+  kable_styling(bootstrap_options="bordered", 
+                full_width=FALSE, 
+                position="center",
+                latex_options="HOLD_position")
+```
+
+## Model 5: Random Forest
+
+With the CART model being prone to over-fitting, the random forest model compensates for this by using decision trees to generate many predictors, and then averages them until a final prediction is made based on the averages.  The trade-off for its performance gain is the loss of interpret ability of the data.  
+
+\vspace{11pt}
+This model uses the `Rborist` method, which a high-performance implementation of random forest.
+
+\vspace{11pt}
+```{r model 5 calculation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+set.seed(1, sample.kind = "Rounding")
+# Train the Random Forest model using the "Rborist" method.  Set basic decision tree
+# tuning parameters.
+model5_fit <- train(stroke ~ ., data = stroke_train,
+                   method = "Rborist",
+                   preProcess=c("center", "scale"),
+                   tuneGrid = expand.grid(predFixed = seq(1,4), minNode = 2))
+model5_fit
+
+# Predict the outcome from the stroke_test dataset
+model5_preds <- predict(model5_fit, stroke_test)
+
+# Calculate the accuracy of the model against the stroke_test dataset.
+model5_accuracy <- confusionMatrix(model5_preds, stroke_test$stroke)$overall["Accuracy"]
+model5_accuracy
+```
+
+Using the `stroke_test` data, the accuracy for this model is calculated to be `r model5_accuracy`.
+
+\vspace{11pt}
+```{r Model 5 Accuracy table, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create a table containing the Model 5 data results.
+model_table_titles <- c(model_table_titles, "Model 5: Random Forest")
+model_table_accuracy <- c(model_table_accuracy, model5_accuracy)
+kable(tibble(model_table_titles, model_table_accuracy),
+      col.names = c("Model", "Accuracy")) %>%
+  row_spec(0,background="#104E8B", color="white") %>% 
+  column_spec(2, bold=TRUE) %>% 
+  kable_styling(bootstrap_options="bordered", 
+                full_width=FALSE, 
+                position="center",
+                latex_options="HOLD_position")
+```
+
+
+## Model 6: k-Nearest Neighbor (kNN)
+
+The k-nearest neighbor model searches its neighboring data, assuming that similar data points exist close by.  The most similar data points to the ones you have to predict are found by averaging the neighboring values, or by most frequent class.  Decreasing the value of K yields less accurate predictions, and increasing it too high produces errors which also yields less accurate predictions.
+
+\vspace{11pt}
+```{r model 6 calculation, echo=TRUE, message=FALSE, warning=FALSE, eval=TRUE}
+set.seed(1, sample.kind = "Rounding")
+# Train the k-Nearest Neighbors model, setting the k-value tuning parameters.
+model6_fit <- train(stroke ~ ., data = stroke_train,
+                   method = "knn",
+                   preProcess=c("center", "scale"),
+                   tuneGrid = data.frame(k = seq(1,100,5)))
+model6_fit
+
+# Predict the outcome from the stroke_test dataset
+model6_preds <- predict(model6_fit, stroke_test)
+
+# Calculate the accuracy of the model against the stroke_test dataset.
+model6_accuracy <- confusionMatrix(model6_preds, stroke_test$stroke)$overall["Accuracy"]
+model6_accuracy
+```
+
+Using the `stroke_test` data, the accuracy for this model is calculated to be `r model6_accuracy`.
+
+\vspace{11pt}
+```{r Model 6 Accuracy table, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create a table containing the Model 6 data results.
+model_table_titles <- c(model_table_titles, "Model 6: k-Nearest Neighbor (kNN)")
+model_table_accuracy <- c(model_table_accuracy, model6_accuracy)
+kable(tibble(model_table_titles, model_table_accuracy),
+      col.names = c("Model", "Accuracy")) %>%
+  row_spec(0,background="#104E8B", color="white") %>% 
+  column_spec(2, bold=TRUE) %>% 
+  kable_styling(bootstrap_options="bordered", 
+                full_width=FALSE, 
+                position="center",
+                latex_options="HOLD_position")
+```
+
+\newpage
+
+# RESULTS
+
+Having done all of the initial data analysis in section 4 and pinpointing which factors may contribute to (or at least warrant a model to test) an accurate stroke prediction system, stepping through six (6) different models yielded the most accurate results with the use of the Random Forest model.  
+
+\vspace{11pt}
+While testing the various performance tuning options of each model a few models ended up having extended compute-intensive time frames (up to 2 hours on an 8-core hyperthreaded processor with 64GB RAM).  The final tests with the parameters used in this report only took around 30 minutes to complete from start to finish.
+
+\vspace{11pt}
+The final accuracy results table below shows the summary list of all prediction models tested for a stroke prediction system using the stroke_train and stroke_test datasets.  
+```{r Final RMSE table, echo=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+# Create Final RMSE Results Table for all models
+kable(tibble(model_table_titles, model_table_accuracy),
+      col.names = c("Model", "Accuracy")) %>%
+  row_spec(0,background="#104E8B", color="white") %>%
+  row_spec(6, bold=TRUE) %>% 
+  column_spec(2, bold=TRUE) %>% 
+  kable_styling(bootstrap_options="bordered", 
+                full_width=FALSE, 
+                position="center",
+                latex_options="HOLD_position")
+```
+
+
+# CONCLUSION
+
+The purpose of this project was to create a stroke prediction system, using a public dataset from Kaggle, and building multiple machine learning models, selecting the one with the highest accuracy.  From initial GitHub repository creation, to data wrangling, dataset analysis, data visualizations, and model development, the knowledge and techniques learned throughout the entire course series has been used.
+
+\vspace{11pt}
+Both the logistic regression, Naive Bayes, and linear discriminant models all performed their calculations very quickly, and all used the same tuning parameters with results that were all still very high (`r model1_accuracy`, `r model2_accuracy`, and `r model3_accuracy`, respectively).  The Random Forest and k-Nearest Neighbors tuning parameters were more difficult to test as the calculation times would get extended, and the CPU resources would be locked to the process until completed each time. 
+
+\vspace{11pt}
+After testing 6 different predictive models, using their respective calculated accuracy scores as the success indicator for each, the Random Forest model yielded the highest score of `r model6_accuracy`.  Comparing this accuracy score to the initial Logistic Regression model (`r model1_accuracy`), there was an improvement of approximately `r round((model6_accuracy - model1_accuracy)*100, 3)`%.
+
+\vspace{11pt}
+While the dataset contained many of the health factors that were considered risks by the Centers for Disease Control (CDC) and the National Institute of Neurological Disorders and Stroke (NINDS), as indicated in the Introduction, limitations to the model included several other missing predictors that could be added to future tests, such as Race, geographic location, alcohol drinking habits, drug use, cholesterol level, etc.  Being able to inform both the patient and their doctor of their risk of stroke could lead to proactive treatment, better life choices, and a prolonged life span.  The data in this particular dataset showed `age`, `heart_disease`, `avg_glucose_level`, and `hypertension` are the most relevant predictors to `stroke`.
+
+\vspace{11pt}
+Further improvements and future work include an expanded dataset with more samples, additional performance tuning on all of the models in the future (especially in the event that additional factors get added).  Additional models, such as the ensemble method, could be developed and tuned to test whether further accuracy can be achieved.
+
+# REFERENCES
+
+1. Data Science textbook by Rafael Irizarry, https://rafalab.github.io/dsbook.
+2. Kaggle, Stroke Dataset, https://www.kaggle.com/dhirendommeti/stroke
+3. National Institute of Neurological Disorders and Stroke (NINDS), https://www.stroke.nih.gov/materials/needtoknow.htm
+4. Centers for Disease Control (CDC), https://www.cdc.gov/stroke/facts.htm
+5. Mayo Clinic, https://www.mayoclinic.org/diseases-conditions/stroke/symptoms-causes/syc-20350113
