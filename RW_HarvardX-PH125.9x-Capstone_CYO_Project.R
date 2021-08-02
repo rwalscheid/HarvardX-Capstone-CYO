@@ -22,8 +22,8 @@ if(!require(corrplot)) +
 if(!require(dplyr)) +	
   install.packages("dplyr", repos = "http://cran.us.r-project.org")	
 if(!require(grid)) +	
-  install.packages("gridExtra", repos = "http://cran.us.r-project.org")	
-if(!require(grid)) +	
+  install.packages("grid", repos = "http://cran.us.r-project.org")	
+if(!require(gridExtra)) +	
   install.packages("gridExtra", repos = "http://cran.us.r-project.org")	
 if(!require(kableExtra)) +	
   install.packages("kableExtra", repos = "http://cran.us.r-project.org")	
